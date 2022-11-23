@@ -3,7 +3,6 @@ use tokio::net::TcpListener;
 use tokio::io::AsyncWriteExt;
 use std::io;
 use crossbeam_channel::*;
-use std::time::Duration;
 
 struct ControllerChannel {
 }
@@ -24,9 +23,12 @@ impl ControllerChannel {
 		}
 		if let Ok(frame) = rx.try_recv() {
 		    for i in 0..clients.len() {
-			if let Err(_) = clients.get_mut(i).unwrap().try_send(frame) {
-			    println!("client disconnected");
-			    clients.swap_remove(i);
+			if let Some(c) = clients.get_mut(i) {
+			    println!("len: {}", c.len());
+			    if let Err(_) = c.try_send(frame) {
+				println!("client disconnected");
+				clients.swap_remove(i);
+			    }
 			}
 		    }
 		}
@@ -36,19 +38,23 @@ impl ControllerChannel {
 	//new client loop
 	if let Ok(listener) = TcpListener::bind("127.0.0.1:6142").await {
 	    loop {
-		let (new_chan_tx, new_chan_rx) = bounded(1);
-		meta_channel_tx.try_send(new_chan_tx);
+		let (new_chan_tx, new_chan_rx) = bounded::<u64>(1);
 		if let Ok((mut socket, _)) = listener.accept().await {
 		    tokio::spawn(async move {
 			println!("New client connected");
 			loop {
 			    if let Ok(val) = new_chan_rx.try_recv() {
-				&socket.write(&val.to_le_bytes()).await;
+				if let Err(_) = &socket.try_write(&val.to_le_bytes()) {
+				    &socket.shutdown();
+				    break
+				}
 				println!("ctlr rx val {:?}", val);
-			    }
+			    } 
 			    tokio::task::yield_now().await;
 			}
+			println!("end client task");
 		    });
+		    meta_channel_tx.try_send(new_chan_tx);
 		}
 	    }
 	}

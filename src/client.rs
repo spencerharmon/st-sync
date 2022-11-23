@@ -39,7 +39,7 @@ impl Client {
     
 	Client { rx }
     }
-    pub fn recv_next_beat_frame(&self) -> Result<u64, RecvError> {
-	self.rx.recv()
+    pub fn recv_next_beat_frame(&self) -> Result<u64, TryRecvError> {
+	self.rx.try_recv()
     }
 }

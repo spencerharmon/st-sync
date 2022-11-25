@@ -2,6 +2,8 @@ use tokio::net::TcpStream;
 use tokio::io::AsyncReadExt;
 use std::io;
 use crossbeam_channel::*;
+use tokio::time::timeout;
+use std::time::Duration;
 
 struct ClientChannel {
     tx: Sender<u64>
@@ -16,8 +18,10 @@ impl ClientChannel {
 
 	loop {
 	    let mut buf = [0 as u8; 8];
-	    transport.read(&mut buf).await?;
-    	    self.tx.send(u64::from_le_bytes(buf));	    
+	    if let Ok(_) = timeout(Duration::from_millis(1), transport.read(&mut buf)).await {
+    		self.tx.try_send(u64::from_le_bytes(buf));
+	    }
+	    tokio::task::yield_now().await;
 	}
     }
     

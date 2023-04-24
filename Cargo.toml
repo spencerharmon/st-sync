@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1.18.2", features = [ "full" ] }
 crossbeam-channel = "0.5.6"
+async-std = "1.12"
 

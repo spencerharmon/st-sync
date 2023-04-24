@@ -17,11 +17,12 @@ impl ClientChannel {
         let mut transport = TcpStream::connect("127.0.0.1:6142").await?;
 
 	loop {
+	    transport.readable().await?;
 	    let mut buf = [0 as u8; 8];
 	    if let Ok(_) = timeout(Duration::from_millis(1), transport.read(&mut buf)).await {
     		self.tx.try_send(u64::from_le_bytes(buf));
 	    }
-	    tokio::task::yield_now().await;
+//	    tokio::task::yield_now().await;
 	}
     }
     
@@ -43,7 +44,10 @@ impl Client {
     
 	Client { rx }
     }
-    pub fn recv_next_beat_frame(&self) -> Result<u64, TryRecvError> {
+    pub fn recv_next_beat_frame(&self) -> Result<u64, RecvError> {
+	self.rx.recv()
+    }
+    pub fn try_recv_next_beat_frame(&self) -> Result<u64, TryRecvError> {
 	self.rx.try_recv()
     }
 }

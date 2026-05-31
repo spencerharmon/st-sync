@@ -269,7 +269,31 @@ from each fanout message before any record/stop logic.
 
 ---
 
-## 8. Testing
+## 8. Testing & verification
+
+Two complementary layers:
+
+### 8.1 TLA+ formal model
+
+The three protocol guarantees (§ 3) are also encoded in a TLA+ spec at
+[`tla/BeatWindow.tla`](tla/BeatWindow.tla). TLC exhaustively explores
+the reachable state space and verifies every guarantee in every
+reachable state — coverage that no finite test suite can match.
+
+**v1 status (shipped):** both `MCSmall.cfg` (15,673 distinct states,
+~3s) and `MCStress.cfg` (239,476 distinct states, ~30s) pass cleanly.
+Full report at [`tla/REPORT_v1.md`](tla/REPORT_v1.md).
+
+**v2 status:** envelope-based tempo automation modeled in
+[`tla/BeatWindowV2.tla`](tla/BeatWindowV2.tla). See the *Future work*
+section for what this covers and why it's the next thing to formalize.
+
+This design doc is the canonical English statement of the protocol;
+`BeatWindow.tla` is the canonical formal statement. Discrepancies are
+bugs in one or the other — fix the offender, update the other in the
+same commit.
+
+### 8.2 Rust unit & integration tests
 
 99 tests across the suite at the time of writing.
 

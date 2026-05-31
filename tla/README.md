@@ -11,9 +11,14 @@ same commit.
 
 | File | Purpose |
 |---|---|
-| `BeatWindow.tla` | The spec. State, actions, safety invariants, liveness properties. |
-| `MCSmall.cfg` | Tiny constants for fast iteration (~3s, ~16k states). |
-| `MCStress.cfg` | Larger constants for confidence (~30s, ~240k states). |
+| `BeatWindow.tla` | The v1 spec. State, actions, safety invariants, liveness properties. |
+| `BeatWindowV2.tla` | The v2 spec. Extends v1 with a score-envelope tempo model + policy 3. |
+| `MCSmall.cfg` | v1 tiny constants for fast iteration (~3s, ~16k states). |
+| `MCStress.cfg` | v1 larger constants for confidence (~30s, ~240k states). |
+| `MCSmallV2.cfg` | v2 tiny constants (~1s, ~660 states). |
+| `MCStressV2.cfg` | v2 larger constants (~9s, ~52k states). |
+| `REPORT_v1.md` | v1 verification report. |
+| `REPORT_v2.md` | v2 verification report. |
 | `smoke/bank_transfer.tla` | Toolchain smoke test (the example from the post that motivated this). |
 
 ## Requirements
@@ -30,13 +35,21 @@ curl -L -o ~/.local/share/tla2tools.jar \
 ## Running
 
 ```sh
-# Fast iteration (a few seconds):
+# v1 -- fast iteration (a few seconds):
 java -XX:+UseParallelGC -cp ~/.local/share/tla2tools.jar tlc2.TLC \
     -config MCSmall.cfg BeatWindow
 
-# Stress run (~30s, larger window + extra consumer):
+# v1 -- stress run (~30s, larger window + extra consumer):
 java -XX:+UseParallelGC -Xmx12g -cp ~/.local/share/tla2tools.jar tlc2.TLC \
     -workers auto -config MCStress.cfg BeatWindow
+
+# v2 -- envelope-based tempo automation, fast:
+java -XX:+UseParallelGC -cp ~/.local/share/tla2tools.jar tlc2.TLC \
+    -config MCSmallV2.cfg BeatWindowV2
+
+# v2 -- stress:
+java -XX:+UseParallelGC -Xmx12g -cp ~/.local/share/tla2tools.jar tlc2.TLC \
+    -workers auto -config MCStressV2.cfg BeatWindowV2
 
 # Smoke test the toolchain against the bank_transfer example from the post:
 cd smoke && java -cp ~/.local/share/tla2tools.jar tlc2.TLC bank_transfer
@@ -108,13 +121,26 @@ and re-enabled repeatedly.
 
 ## Results
 
+### v1 (shipped protocol)
+
 | Config | Constants | States (distinct) | Depth | Time |
 |---|---|---|---|---|
 | `MCSmall.cfg` | window=3, consumers=2, beats=5, delta=2..4 | 15,673 | 8 | ~3s |
 | `MCStress.cfg` | window=3, consumers=2, beats=7, delta=1..3 | 239,476 | 10 | ~30s |
 
+Full report: [`REPORT_v1.md`](REPORT_v1.md).
+
+### v2 (envelope tempo automation)
+
+| Config | Constants | States (distinct) | Depth | Time |
+|---|---|---|---|---|
+| `MCSmallV2.cfg` | window=3, consumers=1, beats=4, envelopes=2, deltas={2,3} | 660 | 8 | ~1s |
+| `MCStressV2.cfg` | window=3, consumers=2, beats=5, envelopes=3, deltas={2,3,5} | 52,264 | 11 | ~9s |
+
+Full report: [`REPORT_v2.md`](REPORT_v2.md).
+
 All safety invariants and liveness properties hold in every reachable
-state under both configurations.
+state under every configuration.
 
 ### Why `MCStress` is not bigger
 

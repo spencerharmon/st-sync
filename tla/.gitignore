@@ -1,0 +1,3 @@
+# TLC checkpoint / state directories
+states/
+MC*.tla
